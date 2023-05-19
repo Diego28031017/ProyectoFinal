@@ -338,6 +338,7 @@ Valide que se creo correctamente
 SELECT * FROM books;
 ```
 Una vez creada esta fila correctamente inicie sesión ssh en el `cliente1` y/o `cliente2`, tenga en cuenta iniciar sesion con el super usuario. 
+
 Valide que la base de datos, tabla y fila creada en el servidor maestro se hayan replicado en los esclavos
 Inicie sesión en `MySQL`
 ``` bash 
@@ -363,6 +364,8 @@ Valide la información de la tabla `books`
 ``` bash 
 SELECT * FROM books;
 ```
+
+Una vez validado todo y que este correctamente salga de la configuración MySQL ejecutando `exit`.
 
 ## Paso 7 - Configuración ProxySQL
 
