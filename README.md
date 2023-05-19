@@ -238,7 +238,7 @@ log_bin=mysql-bin
 binlog-format=ROW 
 log_slave_updates=ON
 ```
-Reinicie el servicio MySQL
+Reinicie el servicio MySQL en el `cliente1` y `cliente2`
 ``` bash 
 service mysqld restart
 ```
@@ -260,7 +260,7 @@ CHANGE MASTER TO MASTER_HOST='192.168.60.3', MASTER_USER='slave1', MASTER_PASSWO
 ``` bash 
 START SLAVE;
 ```
-Validar  las siguientes lineas esten configuradas asi ejecutando el comando siguiente `Slave_IO_Running: Yes` , `Slave_SQL_Running: Yes` , `Last_Error: `, `Last_SQL_Error: `
+Validar  las siguientes lineas esten configuradas asi ejecutando el comando siguiente `Slave_IO_Running: Yes` , `Slave_SQL_Running: Yes` , `Last_Error: `, `Last_SQL_Error: ` , `Master_Host: 192.168.60.3` , `Master_User: slave1` , `Master_Port: 3306`
 ``` bash 
 SHOW SLAVE STATUS \G
 ```
@@ -276,7 +276,7 @@ CHANGE MASTER TO MASTER_HOST='192.168.60.3', MASTER_USER='slave2', MASTER_PASSWO
 ``` bash 
 START SLAVE;
 ```
-Validar  las siguientes lineas esten configuradas asi ejecutando el comando siguiente `Slave_IO_Running: Yes` , `Slave_SQL_Running: Yes` , `Last_Error: `, `Last_SQL_Error: `
+Validar  las siguientes lineas esten configuradas asi ejecutando el comando siguiente `Slave_IO_Running: Yes` , `Slave_SQL_Running: Yes` , `Last_Error: `, `Last_SQL_Error: ` , `Master_Host: 192.168.60.3` , `Master_User: slave2` , `Master_Port: 3306`
 ``` bash 
 SHOW SLAVE STATUS \G
 ```
@@ -286,5 +286,86 @@ Reinicie el servicio mySQL en el `cliente1` y `cliente2`
 ``` bash 
 service mysqld restart
 ```
+## Paso 6 - Validar la replica de bases de datos a los esclavos desde el maestro
+Inicie sesión ssh en el maestro
+``` bash 
+vagrant ssh servidorRest
+```
+Loggearse con el super usuario
+``` bash 
+sudo -i
+```
+NOTA: Verificar los archivos mencionados a continuación, en caso que sea necesario pegar las lineas de codigo faltante.
+Inicie sesión en `MySQL`
+``` bash 
+mysql -u root -p
+```
+Vea todas las bases de datos existentes en `MySQL`
+``` bash 
+SHOW DATABASES;
+```
+Cree una base de datos `PRUEBA`
+``` bash 
+CREATE DATABASE PRUEBA;
+```
+Valide que se creo correctamente
+``` bash 
+SHOW DATABASES;
+```
+Ingrese a la base de datos `PRUEBA`
+``` bash 
+USE PRUEBA;
+```
+Cree una tabla llamada `books` con la siguiente estructura
+``` bash 
+CREATE TABLE books (
+id int NOT NULL AUTO_INCREMENT PRIMARY KEY,
+title varchar(255),
+description varchar(255),
+author varchar(255)
+);
+```
+Valide que se creo correctamente
+``` bash 
+SHOW TABLES;
+```
+Agregue una fila a la tabla
+``` bash 
+INSERT INTO books VALUES(null, "La hojarasca", "interesante", "gabo");
+```
+Valide que se creo correctamente
+``` bash 
+SELECT * FROM books;
+```
+Una vez creada esta fila correctamente inicie sesión ssh en el `cliente1` y/o `cliente2`, tenga en cuenta iniciar sesion con el super usuario. 
+Valide que la base de datos, tabla y fila creada en el servidor maestro se hayan replicado en los esclavos
+Inicie sesión en `MySQL`
+``` bash 
+mysql -u root -p
+```
+Vea todas las bases de datos existentes en `MySQL`
+``` bash 
+SHOW DATABASES;
+```
+Valide que se creo correctamente la base de datos `PRUEBA`
+``` bash 
+SHOW DATABASES;
+```
+Ingrese a la base de datos `PRUEBA`
+``` bash 
+USE PRUEBA;
+```
+Valide la tabla `books`
+``` bash 
+SHOW TABLES;
+```
+Valide la información de la tabla `books`
+``` bash 
+SELECT * FROM books;
+```
+
+## Paso 7 - Configuración ProxySQL
+
+
 
 
