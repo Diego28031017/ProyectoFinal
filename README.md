@@ -33,12 +33,12 @@ El archivo `scriptcl.sh` es usado para aprovisionar las maquinas llamadas `clien
 
 ![scripcl](scripcl.png)
 
-#### Paso 2 - En la consola de comandos de la maquina anfitrión dirijirse a la ruta donde descomprimio el archivo `BalanceoMySQL-master.zip`.
+## Paso 2 - En la consola de comandos de la maquina anfitrión dirijirse a la ruta donde descomprimio el archivo `BalanceoMySQL-master.zip`.
 Arranque las maquinas con este comando:
 ``` bash 
 vagrant up
 ```
-Nota: Cuando se ejecuta este comando por primera vez es demorado, aproxidamante 10 minutos o mas dependiente de los recursos de hardware de la maquina anfitrión.
+Nota: Cuando se ejecuta este comando por primera vez es demorado, aproxidamante 10 minutos o mas dependiendo de los recursos de hardware de la maquina anfitrión.
 
 Verifique el estado de las maquinas con el comando: 
 ``` bash 
@@ -46,10 +46,245 @@ vagrant status
 ```
 Deberia ver algo asi en la consola de comandos:
 
-![v_status](v_status.PNG)
+![v_status1](v_status1.PNG)
 
-Para iniciar sesión en las maquinas ejecute este comando dependiendo 
+Para iniciar sesión en las maquinas ejecute este comando: 
 ``` bash 
 vagrant ssh NombreMaquina
 ```
 Nota: Reemplace `NombreMaquina` por una de las creadas en este proyecto `servidorRest`, `cliente1`, `cliente2`.
+
+## Paso 3 - Configurar la replicación de bases de datos MySQL Maestro - Esclavos.
+Inicie sesión ssh en el maestro
+``` bash 
+vagrant ssh servidorRest
+```
+Loggearse con el super usuario
+``` bash 
+sudo -i
+```
+Genere las claves privadas y publicas para poder exportar la base de datos del maestro a los esclavos
+``` bash 
+ssh-keygen
+```
+Abrir los directorios y/o archivos ocultos
+``` bash 
+ls -la
+```
+Otorgue los permisos al directorio y los archivos
+``` bash 
+chmod 700 ~/.ssh
+```
+``` bash 
+chmod 600 ~/.ssh/authorized_keys
+```
+Dirigirse a la ruta
+``` bash 
+cd /.ssh
+```
+Cree el siguiente archivo
+``` bash 
+touch authorized_keys
+```
+# NOTA: Repita a partir del paso 3 los anteriores comandos en las maquinas `cliente1` y `cliente2`
+
+En los clientes se pega la clave publica del servidor rest `id_rsa.pub` en el archivo `authorized_keys`
+
+Para acceder al archivo `id_rsa.pub` ejecute el siguiente comando en la consola una vez haya iniciado sesion ssh en el `servidorRest`, tenga en cuenta iniciar sesion con el super usuario.
+``` bash 
+cd /.ssh
+```
+Consultar la llave publica del maestro y copiarla completamente
+``` bash 
+cat id_rsa.pub
+```
+Una vez copiada la llave publica dirigirse a los esclavos `cliente1` y `cliente2` y pegarla en el archivo `authorized_keys`.
+
+Dirigirse a la ruta
+``` bash 
+cd /.ssh
+```
+Modifique el archivo
+``` bash 
+vim authorized_keys
+```
+Pegue la clave publica del maestro. Para guardar los cambios ejecute
+`ESC` + `:` + `wq`
+
+## Paso 4 - Configuración firewalld.
+
+Regresar a la ruta `/root`
+``` bash 
+cd /root
+```
+Agregue el servicio mysql al firewall de forma permanente
+``` bash 
+firewall-cmd --permanent --add-service=mysql
+```
+Reinicie el servicio firewall para guardar los cambios
+``` bash 
+firewall-cmd --reload
+```
+# NOTA: Repita a partir del paso 4 los anteriores comandos en las maquinas `cliente1` y `cliente2`
+
+## Paso 5 - Configuración MySQL Maestro-Esclavos
+Configuración del maestro:
+Inicie sesión ssh en el maestro
+``` bash 
+vagrant ssh servidorRest
+```
+Loggearse con el super usuario
+``` bash 
+sudo -i
+```
+NOTA: Verificar los archivos mencionados a continuación, en caso que sea necesario pegar las lineas de codigo faltante.
+
+Editar el archivo `my.cnf`
+``` bash 
+vim /etc/my.cnf
+```
+Agregue las siguientes lineas de codigo
+``` bash 
+[mysqld]
+bind-address=192.168.60.3
+server-id=1
+log_bin=mysql-bin
+binlog-format=ROW 
+log_slave_updates=ON
+```
+Para guardar los cambios ejecute
+`ESC` + `:` + `wq`
+Reinicie el servicio mySQL
+``` bash 
+service mysqld restart
+```
+Inicie sesión en `MySQL`
+``` bash 
+mysql -u root -p
+```
+
+Cree los usuarios que permitiran la comunicación entre el maestro y los esclavos
+``` bash 
+CREATE USER 'slave1'@'192.168.60.4' IDENTIFIED BY 'contra1234';
+CREATE USER 'slave2'@'192.168.60.5' IDENTIFIED BY 'contra12345';
+```
+Otorgue permisos a estos usuarios
+``` bash 
+GRANT REPLICATION SLAVE ON *.* TO 'slave1'@'192.168.60.4';
+GRANT REPLICATION SLAVE ON *.* TO 'slave2'@'192.168.60.5';
+```
+Valide que los usuarios hayan sido creados correctamente
+``` bash 
+SELECT User, Host FROM mysql.user; 
+```
+Valide el estatus del maestro MySQL
+``` bash 
+SHOW MASTER STATUS; 
+```
+NOTA: Debe tener en cuenta la información obtenida del comando anterior, pues esta información sera importante para la configuración de los esclavos.
+
+Detenga el estado de los esclavos
+``` bash 
+STOP SLAVE; 
+```
+Salga de la configuración MySQL ejecutando `exit`
+
+Cree un archivo `backup.sql` para poder enviar esta configuracion a los esclavos
+``` bash 
+mysqldump --all-databases -u root>backup.sql 
+```
+Pegue este archivo a cada uno de los esclavos `cliente1` y `cliente2`
+``` bash 
+scp /root/backup.sql root@192.168.60.4:/root/
+scp /root/backup.sql root@192.168.60.5:/root/ 
+```
+
+Configuración del esclavo:
+Inicie sesión ssh en el esclavo
+``` bash 
+vagrant ssh cliente1
+```
+y/o
+``` bash 
+vagrant ssh cliente2
+```
+Loggearse con el super usuario
+``` bash 
+sudo -i
+```
+NOTA: Verificar los archivos mencionados a continuación, en caso que sea necesario pegar las lineas de codigo faltante.
+
+Editar el archivo `my.cnf`
+``` bash 
+vim /etc/my.cnf
+```
+Agregue las siguientes lineas de codigo
+
+Para el `cliente1`
+``` bash 
+[mysqld]
+bind-address=192.168.60.4
+server-id = 2
+log_bin=mysql-bin
+binlog-format=ROW 
+log_slave_updates=ON
+```
+Para el `cliente2`
+``` bash 
+[mysqld]
+bind-address=192.168.60.5
+server-id = 3
+log_bin=mysql-bin
+binlog-format=ROW 
+log_slave_updates=ON
+```
+Reinicie el servicio MySQL
+``` bash 
+service mysqld restart
+```
+Importe el archivo `backup.sql` en el `cliente1` y `cliente2`
+``` bash 
+mysql -u root < /root/backup.sql	//importar a mysql
+```
+Inicie sesión en `MySQL` en el `cliente1` y `cliente2`
+``` bash 
+mysql -u root -p
+```
+Para el `cliente1`
+``` bash 
+STOP SLAVE;
+```
+``` bash 
+CHANGE MASTER TO MASTER_HOST='192.168.60.3', MASTER_USER='slave1', MASTER_PASSWORD='contra1234', MASTER_LOG_FILE='mysql-bin.000001', MASTER_LOG_POS=1214;
+```
+``` bash 
+START SLAVE;
+```
+Validar  las siguientes lineas esten configuradas asi ejecutando el comando siguiente `Slave_IO_Running: Yes` , `Slave_SQL_Running: Yes` , `Last_Error: `, `Last_SQL_Error: `
+``` bash 
+SHOW SLAVE STATUS \G
+```
+Salga de la configuración MySQL ejecutando `exit`
+
+Para el `cliente2`
+``` bash 
+STOP SLAVE;
+```
+``` bash 
+CHANGE MASTER TO MASTER_HOST='192.168.60.3', MASTER_USER='slave2', MASTER_PASSWORD='contra12345', MASTER_LOG_FILE='mysql-bin.000001', MASTER_LOG_POS=1214;
+```
+``` bash 
+START SLAVE;
+```
+Validar  las siguientes lineas esten configuradas asi ejecutando el comando siguiente `Slave_IO_Running: Yes` , `Slave_SQL_Running: Yes` , `Last_Error: `, `Last_SQL_Error: `
+``` bash 
+SHOW SLAVE STATUS \G
+```
+Salga de la configuración MySQL ejecutando `exit`
+
+Reinicie el servicio mySQL en el `cliente1` y `cliente2`
+``` bash 
+service mysqld restart
+```
+
+
