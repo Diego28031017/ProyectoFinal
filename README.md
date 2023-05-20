@@ -505,9 +505,149 @@ select * from runtime_mysql_servers\G
 
 Ahora nos dirigimos a el `cliente1` y `cliente2` para hacer el siguiente procedimiento
 
+Ingresar al mysql
+``` bash 
+mysql
+```
+Ingresar el siguiente comando:
+``` bash 
+select @@read_only;
+```
+Si le aparece este parametro en 0, lo tiene que pasar a 1 con este comando en los dos clientes
+``` bash 
+set global read_only=1;
+```
+Nota: Si en el maestro aparece este parametro como 1; hay que pasarlo a 0 con el anterior comando, de lo contrario dejarlo asi
+
+Se vuelve a la maquina `servidorRest` para ingresar al proxysql
+``` bash 
+mysql -u admin -padmin -h 127.0.0.1 -P6032 --prompt 'ProxySQL Admin> '
+```
+``` bash 
+show create table mysql_users\G
+```
+
+Vamos al maestro SQL ubicado en la misma maquina `servidorRest`
+``` bash 
+mysql
+```
+Se crea un usuario llamado `app` y se le asignan todos los permisos para hacer las pruebas con este usuario realizando las consultas
+``` bash 
+create user app@'%' identified by 'MySQL@321';
+```
+``` bash 
+grant all on *.* to app@'%';
+```
+``` bash 
+flush privileges;
+```
+``` bash 
+quit
+```
+
+Volvemos al servidor proxysql nuevamente
+
+``` bash 
+mysql -u admin -padmin -h 127.0.0.1 -P6032 --prompt 'ProxySQL Admin> '
+```
+``` bash 
+show create table mysql_users\G
+```
+``` bash 
+insert into mysql_users (username,password,active,default_hostgroup,max_connections) values ('app', 'MySQL@321', 1, 1, 100);
+```
+``` bash 
+load mysql users to runtime;
+```
+``` bash 
+save mysql users to disk;
+```
+``` bash 
+\q
+```
+Con los anteriores comandos se realizo la configuracion en `mysql_users` para agregar el usuario `app` y otros parametros dentro de esta tabla de configuracion
+
+Con el ultimo comando ingresado que es `\q` se salio de la consola de admin del proxysql y ya se encuentra en la maquina normal, lo puede verificar viendo esto `[root@servidorRest ~]#`en la parte izquierda de la consola de comandos
+
+Estando ahi se ejecutaran los comandos a continuacion los cuales quieren decir que se va a conectar al proxysql pero ya con una sesion normal a traves del puerto `6033` y con el usuario `app` con el fin de hacer unas pruebas en donde se crea una base de datos, una tabla, el contenido de la tabla se le agrega un valor y por ultimo se selecciona la tabla para poderla visualizar
+
+``` bash 
+mysql -h192.168.60.3 -P6033 -uapp -p'MySQL@321' -e "create database sri1"
+```
+``` bash 
+mysql -h192.168.60.3 -P6033 -uapp -p'MySQL@321' -e "create table sri1.test1(id int)"
+```
+``` bash 
+mysql -h192.168.60.3 -P6033 -uapp -p'MySQL@321' -e "insert into sri1.test1 values(1)"
+```
+``` bash 
+mysql -h192.168.60.3 -P6033 -uapp -p'MySQL@321' -e "select * from sri1.test1"
+```
+
+Ahora nos vamos para el servidor maestro de mysql en la misma maquina
+``` bash
+mysql
+```
+``` bash
+show schemas;
+```
+``` bash
+use sri1;
+```
+``` bash
+show tables;
+```
+``` bash
+select * from test1;
+```
+
+Con los anteriores comandos lo que se hace basicamente es verificar si se creo la base de datos `sri1` y seleccionarla para visualizarla
+
+``` bash
+quit
+```
+
+Nuevamente se ingresa al proxysql en la misma maquina
+
+``` bash
+mysql -u admin -padmin -h 127.0.0.1 -P6032 --prompt 'ProxySQL Admin> '
+```
+``` bash
+show databases;
+```
+Este comando se ejecuta para ver las estadisticas de los servidores
+``` bash
+show tables from stats;
+```
+``` bash
+select * from stats_mysql_connection_pool;
+```
+``` bash
+select hostgroup,srv_host,status,Queries from stats_mysql_connection_pool;
+```
+Los dos anteriores comandos son para primero visualizar todos los servidores y sus diferentes parametros y la segunda linea es para armar una tabla con los valores que nos interesan para hacer el balanceo de carga
+``` bash
+show create table mysql_query_rules\G
+```
+``` bash
+insert into mysql_query_rules (rule_id,active,match_pattern,destination_hostgroup,apply) values (1,1,'^SELECT .*',2,1);
+```
+Los dos anteriores comandos son para definir una regla de consulta para los servidores MySQL
+``` bash
+load mysql query rules to runtime;
+```
+``` bash
+save mysql query rules to disk;
+```
+``` bash
+quit
+```
+Se guardan los cambios y se sale de la consola de admin del proxysql
 
 
 
+
+De esa manera ya se encuentra en la maquina normal nuevamente `[root@servidorRest ~]#` si dice esto
 
 
 
