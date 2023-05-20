@@ -485,4 +485,31 @@ load mysql variables to runtime;
 ``` bash 
 save mysql variables to disk;
 ```
+``` bash 
+show variables;
+```
+``` bash 
+nopager
+```
+Si despues de ingresar el ultimo comando aparece este mensaje `PAGER set to stdout` siginifica que se salio de esta subseccion y que puede seguir normalmente
+
+En estos pasos se creo el usuario y la contraseña para monitorear el mysql desde el proxysql y se asignaron las credenciales haciendo el procedimiento anterior
+
+Este comando es para visualizar la tabla de como estan agregados todos los servidores
+``` bash 
+select * from runtime_mysql_servers;
+```
+``` bash 
+select * from runtime_mysql_servers\G
+```
+
+Ahora nos dirigimos a el `cliente1` y `cliente2` para hacer el siguiente procedimiento
+
+
+
+
+
+
+
+
 
