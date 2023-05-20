@@ -662,7 +662,7 @@ save mysql servers to disk;
 
 Con los anteriores comandos lo que se hizo fue establecerle un peso mas alto a los dos esclavos SQL ya que por la id del hostgroup se estaba tomando hacia el maestro; ya con esto se corrige ese erro y ya los `querys` van directamene a los esclavos, y se guardan las configuraciones hechas
 
-Para hacer una prueba de una consulta ejecute el siguiente comando una o varias veces y despues verifica en `stats_mysql_connection_pool;` si los `querys` estan dirigiendose a los esclavos
+Para hacer una prueba de una consulta ejecute el siguiente comando una o varias veces y despues verifica en `select hostgroup,srv_host,status,Queries from stats_mysql_connection_pool;` si los `querys` estan dirigiendose a los esclavos
 
 ``` bash
 mysql -h192.168.60.3 -P6033 -uapp -p'MySQL@321' -e "select * from sri1.test1"
