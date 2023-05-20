@@ -640,14 +640,41 @@ load mysql query rules to runtime;
 save mysql query rules to disk;
 ```
 ``` bash
-quit
+select hostgroup,srv_host,status,Queries from stats_mysql_connection_pool;
 ```
-Se guardan los cambios y se sale de la consola de admin del proxysql
+Se ingresa el anterior comando para revisar las estadisticas de los servidores y de los `querys`
+
+``` bash
+select * from mysql_servers;
+```
+``` bash
+update mysql_servers set weight = 100 where hostname ='192.168.60.4';
+```
+``` bash
+update mysql_servers set weight = 100 where hostname ='192.168.60.5';
+```
+``` bash
+load mysql servers to runtime;
+```
+``` bash
+save mysql servers to disk;
+```
+
+Con los anteriores comandos lo que se hizo fue establecerle un peso mas alto a los dos esclavos SQL ya que por la id del hostgroup se estaba tomando hacia el maestro; ya con esto se corrige ese erro y ya los `querys` van directamene a los esclavos, y se guardan las configuraciones hechas
+
+Para hacer una prueba de una consulta ejecute el siguiente comando una o varias veces y despues verifica en `stats_mysql_connection_pool;` si los `querys` estan dirigiendose a los esclavos
+
+``` bash
+mysql -h192.168.60.3 -P6033 -uapp -p'MySQL@321' -e "select * from sri1.test1"
+```
 
 
 
 
-De esa manera ya se encuentra en la maquina normal nuevamente `[root@servidorRest ~]#` si dice esto
+
+
+
+
 
 
 
