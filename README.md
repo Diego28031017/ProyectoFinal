@@ -434,5 +434,55 @@ load mysql servers to runtime;
 ``` bash
 save mysql servers to disk;
 ```
-
+Salimos de la consola de admin del proxysql
+``` bash
+quit
+```
+Ahora se ingresa al mysql del `servidorRest`
+Encender el servicio de mysqld con el siguiente comando
+``` bash 
+service mysqld start
+```
+Ingresar a la consola del mysql
+``` bash 
+mysql
+```
+Se crea un usuario para realizar el monitoreo de los servidores
+``` bash 
+create user proxy_mon@'%' identified by 'MYSQL@321';
+```
+Se le asignan todos lo privilegios al usuario
+``` bash 
+grant all on *.* to proxy_mon@'%';
+```
+``` bash 
+flush privileges;
+```
+``` bash 
+quit
+```
+Despues de salir del mysql del maestro se ingresa nuevamente a la consola de admin del proxysql
+``` bash 
+mysql -u admin -padmin -h 127.0.0.1 -P6032 --prompt 'ProxySQL Admin> '
+```
+``` bash 
+show variables;
+```
+``` bash 
+pager grep -i 'username\|password'
+```
+Despues de poner este comando aparece una palabra `show variables;` o algo similar
+Despues se ingresa el siguiente comando
+``` bash 
+set mysql-monitor_password='MYSQL@321';
+```
+``` bash 
+set mysql-monitor_username='proxy_mon';
+```
+``` bash 
+load mysql variables to runtime;
+```
+``` bash 
+save mysql variables to disk;
+```
 
