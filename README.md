@@ -137,6 +137,10 @@ Loggearse con el super usuario
 ``` bash 
 sudo -i
 ```
+Encender el servicio de mysql con el siguiente comando
+``` bash 
+service mysqld start
+```
 NOTA: Verificar los archivos mencionados a continuación, en caso que sea necesario pegar las lineas de codigo faltante.
 
 Editar el archivo `my.cnf`
@@ -369,6 +373,66 @@ Una vez validado todo y que este correctamente salga de la configuración MySQL 
 
 ## Paso 7 - Configuración ProxySQL
 
-
+Encender el servicio de proxysql con el siguiente comando
+``` bash 
+service proxysql start
+```
+Se ingresa esta linea para entrar a la interfaz de admin del proxysql
+``` bash 
+mysql -u admin -padmin -h 127.0.0.1 -P6032 --prompt 'ProxySQL Admin> '
+```
+Nota: En la parte izquierda de la consola aparecera una frase que dice `ProxySQL Admin> ` esto quiere decir que ya estas dentro de la consola de admin del proxysql
+Ya estando en la interfaz de admin se ingresa el siguiente comando; este comando permite visualizar las diferentes bases de datos del proxysql
+``` bash 
+show databases;
+```
+Este comando permite ver las diferentes tablas del proxysql
+``` bash 
+show tables;
+```
+Este comando muestra la informacion de una base de datos que esta configurada por defecto en el proxysql, normalmente es una llamada `admin`
+``` bash 
+show database();
+```
+Este comando es para poder visualizar que parametros de la tabla de mysql_servers se pueden configurar
+``` bash 
+show create table mysql_servers\G
+```
+A continuacion se configuran los datos necesarios para el maestro y los dos esclavos
+Nota: Informacion del maestro
+``` bash 
+INSERT INTO mysql_servers (hostgroup_id, hostname, status, max_connections, port) VALUES (1,'192.168.60.3','ONLINE', 100, 3306);
+```
+Nota: Informacion del `cliente1` (esclavo1)
+``` bash 
+INSERT INTO mysql_servers (hostgroup_id, hostname, status, max_connections, port) VALUES (2,'192.168.60.4','ONLINE', 100, 3306);
+```
+Nota: Informacion del `cliente2` (esclavo2)
+``` bash 
+INSERT INTO mysql_servers (hostgroup_id, hostname, status, max_connections, port) VALUES (2,'192.168.60.5','ONLINE', 100, 3306);
+```
+A continuacion se selecciona la tabla que se acabo de crear para visualizar la informacion ingresada y configurada
+``` bash
+select * from mysql_servers;
+```
+Despues se pone el siguiente comando para crear otra tabla de configuracion
+``` bash
+show create table mysql_replication_hostgroups\G
+```
+Se ingresa la siguiente linea para configurar los parametros deseados
+``` bash
+INSERT INTO mysql_replication_hostgroups (writer_hostgroup,reader_hostgroup,check_type) VALUES (1, 2,'read_only');
+```
+A continuacion se selecciona la tabla que se acabo de crear para visualizar la informacion ingresada y configurada
+``` bash
+select * from mysql_replication_hostgroups;
+```
+Las siguientes dos lineas es para guardar los parametros configurados tanto en el tiempo de ejecucion como en el disco del servicio para que quede guardado siempre
+``` bash
+load mysql servers to runtime;
+```
+``` bash
+save mysql servers to disk;
+```
 
 
